@@ -62,9 +62,9 @@ const Navbar = () => {
       const username = user?.username
     useEffect(()=>{
         async function fetchNotifications() {
-            if (username) {
+            
                 try {
-                    const response = await axios.get(`http://127.0.0.1:8000/notification/getnotifications/?username=${username}&length=${notifications.length}`);
+                    const response = await axios.get(`http://127.0.0.1:8000/notification/getnotifications/?username=${username}`);
                     const data = response.data;
                     const filteredNotifications = data.notifications;
                     if(filteredNotifications.length>0){
@@ -74,10 +74,13 @@ const Navbar = () => {
                 } catch (error) {
                     console.error('Error fetching notifications:', error);
                 }
-            }
+            
         }
         fetchNotifications();
-    },[username,notifications.length])
+        const intervalId = setInterval(fetchNotifications, 10000); 
+    
+        return () => clearInterval(intervalId);
+    },[username])
 
     async function acceptRequest(notification:NotificationDetails){
         setFriendnameRecoil(notification.username)
