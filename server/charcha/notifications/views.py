@@ -70,7 +70,7 @@ def getnotifications(request):
 @api_view(["DELETE"])
 def deletenotification(request):
 
-    notification=Notification.objects.filter(id=request.query_params['id'])
+    notification=Notification.objects.filter(id=int(request.query_params['id']))
     notification.delete()
     return Response({"message":"deleted"},status=status.HTTP_200_OK)
     

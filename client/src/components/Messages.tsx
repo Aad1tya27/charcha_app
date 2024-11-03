@@ -104,7 +104,7 @@ export const Messages = () => {
   useEffect(() => {
     async function getFriends() {
       const response = await axios.post("http://127.0.0.1:8000/message/getfriends/", {
-        "username": username
+        username: username
       })
       const friends = await response.data
       const newContacts = friends.map((friend: any) =>
@@ -134,12 +134,14 @@ export const Messages = () => {
             { username: username, friendname: friendname, ws: ws }
           ]);
 
-          ws.onopen = () => console.log("ws opened")
+          ws.onopen = () => console.log("ws opened" + roomname)
 
-          ws.onclose = () => console.log("ws closed")
+          ws.onclose = () => console.log("ws closed" + roomname)
 
           ws.onmessage = (e) => {
+            console.log("hi")
             const data = JSON.parse(e.data);
+            console.log(data)
             setAllmessagesofuser((prevTexts) => {
              
               return [...prevTexts, data];
@@ -171,67 +173,72 @@ export const Messages = () => {
   //   }
   // }, [allmessagesofuser]);
 
-  //function to add friend and open a websocket connection simultaneously
-  useEffect(()=>{
-    async function addfriendfunc() {
-      try {
-        console.log(friendnamerecoil);
-        const response = await axios.post("http://127.0.0.1:8000/message/addfriend/", {
+
+  async function addfriendfunc(newFriend: string) {
+    try {
+      console.log(newFriend);
+      const response = await axios.post("http://127.0.0.1:8000/message/addfriend/", {
+        "username": username,
+        "friendname": newFriend
+      })
+      const data = response.data;
+      if (data.hasOwnProperty('message')) {
+        // console.log(data);
+        setContacts([...contacts, newFriend])
+        const friend = data.message;
+        // console.log(friend);
+        const roomname = friend.id;
+        const ws = new WebSocket(
+          'ws://'
+          + '127.0.0.1:8000'
+          + '/ws/message/'
+          + roomname
+          + '/'
+        )
+        setWebsockets([...websockets, {
           "username": username,
-          "friendname": friendnamerecoil
-        })
-        const data = response.data;
-        if (data.hasOwnProperty('message')) {
-          // console.log(data);
-          setContacts([...contacts, friendnamerecoil])
-          const friend = data.message;
-          // console.log(friend);
-          const roomname = friend.id;
-          const ws = new WebSocket(
-            'ws://'
-            + '127.0.0.1:8000'
-            + '/ws/message/'
-            + roomname
-            + '/'
-          )
-          setWebsockets([...websockets, {
-            "username": username,
-            "friendname": friendnamerecoil,
-            "ws": ws
-          }])
-  
-          ws.onopen = () => console.log("ws opened")
-  
-          ws.onclose = () => console.log("ws closed")
-  
-          ws.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            console.log(data);
-            setAllmessagesofuser((prevTexts) => {
-              console.log("Received message:", data);
-              
-                return [...prevTexts, data];
-              
-            });
-          };
-          setIserroractive(false);
-          setErrorval('');
-        }
-      } catch (e) {
-       
-        if (axios.isAxiosError(e) && e.response) {
-          setIserroractive(true);
-          setErrorval(e.response.data.error || "something went wrong");
-  
-        } else {
-          setIserroractive(true);
-          setErrorval("An unexpected error occurred");
-          console.log(e);
-        }
+          "friendname": newFriend,
+          "ws": ws
+        }])
+
+        ws.onopen = () => console.log("ws opened" + roomname)
+
+        ws.onclose = () => console.log("ws closed" + roomname)
+
+        ws.onmessage = (e) => {
+          console.log("hi")
+          const data = JSON.parse(e.data);
+          console.log(data);
+          setAllmessagesofuser((prevTexts) => {
+            console.log("Received message:", data);
+            
+              return [...prevTexts, data];
+            
+          });
+        };
+        setIserroractive(false);
+        setErrorval('');
+      }
+    } catch (e) {
+     
+      if (axios.isAxiosError(e) && e.response) {
+        setIserroractive(true);
+        setErrorval(e.response.data.error || "something went wrong");
+
+      } else {
+        setIserroractive(true);
+        setErrorval("An unexpected error occurred");
+        console.log(e);
       }
     }
+    setFriendnameRecoil('');
+  }
+
+
+  useEffect(()=>{
+    
     if(friendnamerecoil.length>0){
-      addfriendfunc();
+      addfriendfunc(friendnamerecoil);
     }
   },[friendnamerecoil])
   
@@ -253,7 +260,7 @@ export const Messages = () => {
         setErrorval(data.message);
       }
       setFriendname('');
-      setFriendnameRecoil('');
+      
     }catch (e){
       if (axios.isAxiosError(e) && e.response) {
         setIserroractive(true);
@@ -401,10 +408,10 @@ const MessageWindow = memo(function MessageWindow(props: MessageWindowProps) {
     for (const websocket of allwebsockets) {
       if (websocket.friendname === friendname || websocket.username === friendname) {
         wsRef.current = websocket.ws;
-        // console.log("Assigned WebSocket for:", friendname);
+        console.log("Assigned WebSocket for:", friendname);
       }
     }
-  }, []); 
+  }, [friendname]); 
 
 
   useEffect(() => {
